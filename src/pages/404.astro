@@ -1,0 +1,20 @@
+---
+import Base from '../layouts/Base.astro';
+import { url } from '../lib/url';
+---
+<Base title="GAME OVER">
+  <section class="mx-auto max-w-3xl px-4 py-28 text-center">
+    <p class="font-pixel text-[clamp(1.6rem,6vw,3rem)] metal-red leading-tight">GAME OVER</p>
+    <p class="font-pixel text-xs text-white mt-10">CONTINUE?</p>
+    <p class="font-vt text-8xl text-ng-yellow mt-4 tabular-nums" id="count">9</p>
+    <p class="text-ng-mute mt-6">找不到這一頁（404）。倒數結束前投幣，回到展館大廳。</p>
+    <a href={url('/')} class="px-btn bg-ng-yellow text-black border-ng-yellow mt-8" data-sfx="coin">INSERT COIN</a>
+  </section>
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const el = document.getElementById('count'); if (!el) return;
+      let n = 9;
+      const t = setInterval(() => { n = Math.max(0, n - 1); el.textContent = String(n); if (n === 0) clearInterval(t); }, 1000);
+    });
+  </script>
+</Base>

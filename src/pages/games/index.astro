@@ -1,0 +1,109 @@
+---
+import Base from '../../layouts/Base.astro';
+import GameCard from '../../components/GameCard.astro';
+import { getGames } from '../../lib/games';
+import { GENRES, DEVELOPERS, YEARS, type GenreKey, type DevKey } from '../../lib/taxonomy';
+
+const games = await getGames();
+const count = (f: (g: (typeof games)[number]) => boolean) => games.filter(f).length;
+---
+<Base title="遊戲典藏" description={`Neo Geo MVS / AES ${games.length} 款遊戲典藏：依年份、類型、開發商篩選。`}>
+  <section class="mx-auto max-w-7xl px-4 pt-10">
+    <div class="flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <p class="font-pixel text-[9px] text-ng-blue-hi">GAME LIBRARY</p>
+        <h1 class="font-dot text-4xl text-white mt-3">遊戲典藏</h1>
+      </div>
+      <p class="font-vt text-3xl text-ng-mute leading-none" aria-live="polite">
+        SHOWING <span class="text-ng-yellow tabular-nums" data-count>{String(games.length).padStart(3, '0')}</span> / {String(games.length).padStart(3, '0')}
+      </p>
+    </div>
+
+    <form class="mt-8 border-2 border-ng-line bg-ng-panel p-4 space-y-4" id="filters" onsubmit="return false">
+      <div class="flex flex-wrap gap-3 items-center">
+        <label class="flex-1 min-w-[220px] flex items-center gap-2 bg-black border-2 border-ng-line focus-within:border-ng-yellow px-3">
+          <span class="font-pixel text-[8px] text-ng-mute">FIND</span>
+          <input type="search" name="q" placeholder="遊戲名稱、中文名、開發商…" class="w-full bg-transparent py-2.5 outline-none text-sm placeholder:text-ng-mute/70" autocomplete="off" />
+        </label>
+        <label class="flex items-center gap-2 text-sm">
+          <span class="font-pixel text-[8px] text-ng-mute">SORT</span>
+          <select name="sort" class="bg-black border-2 border-ng-line px-2 py-2.5 text-sm">
+            <option value="year">年份 ↑</option>
+            <option value="year-desc">年份 ↓</option>
+            <option value="title">名稱 A–Z</option>
+          </select>
+        </label>
+        <button type="button" class="chip" data-reset data-sfx="back">RESET</button>
+      </div>
+
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="sr-only">年份</legend>
+        <span class="font-pixel text-[8px] text-ng-mute w-16 shrink-0">YEAR</span>
+        <button type="button" class="chip" data-f="year" data-v="" aria-pressed="true" data-sfx="select">ALL</button>
+        {YEARS.map((y) => <button type="button" class="chip tabular-nums" data-f="year" data-v={y} aria-pressed="false" data-sfx="select" title={`${count((g) => g.data.year === y)} 款`}>{y}</button>)}
+      </fieldset>
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="sr-only">類型</legend>
+        <span class="font-pixel text-[8px] text-ng-mute w-16 shrink-0">GENRE</span>
+        <button type="button" class="chip" data-f="genre" data-v="" aria-pressed="true" data-sfx="select">ALL</button>
+        {(Object.keys(GENRES) as GenreKey[]).map((k) => <button type="button" class="chip" data-f="genre" data-v={k} aria-pressed="false" data-sfx="select">{GENRES[k].zh} <span class="opacity-60">{count((g) => g.data.genre === k)}</span></button>)}
+      </fieldset>
+      <fieldset class="flex flex-wrap items-center gap-1.5">
+        <legend class="sr-only">開發商</legend>
+        <span class="font-pixel text-[8px] text-ng-mute w-16 shrink-0">MAKER</span>
+        <button type="button" class="chip" data-f="dev" data-v="" aria-pressed="true" data-sfx="select">ALL</button>
+        {(Object.keys(DEVELOPERS) as DevKey[]).map((k) => <button type="button" class="chip" data-f="dev" data-v={k} aria-pressed="false" data-sfx="select">{DEVELOPERS[k].name} <span class="opacity-60">{count((g) => g.data.developer === k)}</span></button>)}
+      </fieldset>
+    </form>
+
+    <div id="grid" class="mt-8 grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {games.map((g) => <GameCard game={g} />)}
+    </div>
+    <div id="empty" class="hidden mt-10 border-2 border-dashed border-ng-line py-16 text-center">
+      <p class="font-pixel text-sm text-ng-red-hi">NO GAME FOUND</p>
+      <p class="font-pixel text-[9px] text-ng-yellow mt-4 blink">INSERT COIN TO RETRY</p>
+    </div>
+  </section>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const form = document.getElementById('filters') as HTMLFormElement | null;
+      const grid = document.getElementById('grid');
+      if (!form || !grid) return;
+      const cards = [...grid.children] as HTMLElement[];
+      const state: Record<string, string> = { year: '', genre: '', dev: '', q: '', sort: 'year' };
+      const params = new URLSearchParams(location.search);
+      for (const k of Object.keys(state)) if (params.get(k)) state[k] = params.get(k)!;
+
+      const q = form.elements.namedItem('q') as HTMLInputElement;
+      const sort = form.elements.namedItem('sort') as HTMLSelectElement;
+      q.value = state.q; sort.value = state.sort;
+
+      const apply = () => {
+        form.querySelectorAll<HTMLButtonElement>('[data-f]').forEach((b) => b.setAttribute('aria-pressed', String(state[b.dataset.f!] === b.dataset.v)));
+        const needle = state.q.trim().toLowerCase();
+        let n = 0;
+        for (const c of cards) {
+          const ok = (!state.year || c.dataset.year === state.year) && (!state.genre || c.dataset.genre === state.genre) && (!state.dev || c.dataset.dev === state.dev) && (!needle || c.dataset.search!.includes(needle));
+          c.hidden = !ok; if (ok) n++;
+        }
+        const sorted = [...cards].sort((a, b) => {
+          if (state.sort === 'title') return a.dataset.title!.localeCompare(b.dataset.title!);
+          const d = Number(a.dataset.year) - Number(b.dataset.year);
+          return (state.sort === 'year-desc' ? -d : d) || a.dataset.title!.localeCompare(b.dataset.title!);
+        });
+        sorted.forEach((c) => grid.appendChild(c));
+        document.querySelector('[data-count]')!.textContent = String(n).padStart(3, '0');
+        document.getElementById('empty')!.classList.toggle('hidden', n > 0);
+        const p = new URLSearchParams();
+        for (const [k, v] of Object.entries(state)) if (v && !(k === 'sort' && v === 'year')) p.set(k, v);
+        history.replaceState(history.state, '', `${location.pathname}${p.toString() ? '?' + p : ''}`);
+      };
+      form.querySelectorAll<HTMLButtonElement>('[data-f]').forEach((b) => b.addEventListener('click', () => { state[b.dataset.f!] = b.dataset.v!; apply(); }));
+      q.addEventListener('input', () => { state.q = q.value; apply(); });
+      sort.addEventListener('change', () => { state.sort = sort.value; apply(); });
+      form.querySelector('[data-reset]')!.addEventListener('click', () => { Object.assign(state, { year: '', genre: '', dev: '', q: '', sort: 'year' }); q.value = ''; sort.value = 'year'; apply(); });
+      apply();
+    });
+  </script>
+</Base>

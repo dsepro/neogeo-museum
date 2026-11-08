@@ -1,0 +1,7 @@
+---
+import { pixelScene, sceneKindFor } from '../lib/pixelScene';
+interface Props { slug: string; genre: string; subgenre: string; variant?: number; }
+const { slug, genre, subgenre, variant = 0 } = Astro.props;
+const svg = pixelScene(variant ? `${slug}#${variant}` : slug, sceneKindFor(genre, subgenre));
+---
+<Fragment set:html={svg} />

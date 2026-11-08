@@ -1,0 +1,59 @@
+---
+import Base from '../../../layouts/Base.astro';
+import GameCard from '../../../components/GameCard.astro';
+import { getGames } from '../../../lib/games';
+import { GENRES, DEVELOPERS, YEARS, type GenreKey, type DevKey } from '../../../lib/taxonomy';
+import { TIMELINE } from '../../../lib/history';
+import { url } from '../../../lib/url';
+
+export async function getStaticPaths() {
+  return [
+    ...YEARS.map((y) => ({ params: { dim: 'year', value: String(y) } })),
+    ...Object.keys(GENRES).map((g) => ({ params: { dim: 'genre', value: g } })),
+    ...Object.keys(DEVELOPERS).map((d) => ({ params: { dim: 'developer', value: d } })),
+  ];
+}
+
+const { dim, value } = Astro.params as { dim: 'year' | 'genre' | 'developer'; value: string };
+const all = await getGames();
+const games = all.filter((g) => (dim === 'year' ? String(g.data.year) === value : dim === 'genre' ? g.data.genre === value : g.data.developer === value));
+
+let kicker = '', heading = '', blurb = '', filterQs = '';
+if (dim === 'year') {
+  kicker = 'BY YEAR'; heading = `${value} 年`; filterQs = `year=${value}`;
+  blurb = TIMELINE.filter((t) => String(t.year) === value).map((t) => t.text).join('；');
+} else if (dim === 'genre') {
+  const g = GENRES[value as GenreKey]; kicker = g.en; heading = g.zh; blurb = g.blurb; filterQs = `genre=${value}`;
+} else {
+  const d = DEVELOPERS[value as DevKey]; kicker = d.name; heading = d.zh; blurb = d.blurb; filterQs = `dev=${value}`;
+}
+const siblings =
+  dim === 'year' ? YEARS.map((y) => ({ v: String(y), label: String(y) }))
+  : dim === 'genre' ? (Object.keys(GENRES) as GenreKey[]).map((k) => ({ v: k, label: GENRES[k].zh }))
+  : (Object.keys(DEVELOPERS) as DevKey[]).map((k) => ({ v: k, label: DEVELOPERS[k].name }));
+---
+<Base title={heading} description={`${heading} — Neo Geo 遊戲 ${games.length} 款。${blurb}`}>
+  <section class="mx-auto max-w-7xl px-4 pt-10">
+    <nav class="font-pixel text-[8px] text-ng-mute flex gap-2" aria-label="麵包屑">
+      <a href={url('/games/')} class="hover:text-ng-yellow" data-sfx="back">GAMES</a><span>/</span><span>{dim.toUpperCase()}</span>
+    </nav>
+    <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_auto] items-end">
+      <div>
+        <p class="font-pixel text-[10px] text-ng-blue-hi">{kicker}</p>
+        <h1 class="font-dot text-4xl sm:text-5xl text-white mt-3">{heading}</h1>
+        {blurb && <p class="text-ng-text/75 mt-4 max-w-2xl leading-8">{blurb}</p>}
+      </div>
+      <div class="text-right">
+        <p class="font-vt text-5xl text-ng-yellow leading-none tabular-nums">{String(games.length).padStart(3, '0')}</p>
+        <p class="font-pixel text-[8px] text-ng-mute mt-2">GAMES</p>
+        <a href={url(`/games/?${filterQs}`)} class="inline-block font-pixel text-[8px] text-ng-yellow hover:text-white mt-4" data-sfx="chime">OPEN IN FILTER ▶</a>
+      </div>
+    </div>
+    <div class="mt-8 flex flex-wrap gap-1.5">
+      {siblings.map((s) => <a href={url(`/browse/${dim}/${s.v}/`)} class="chip" aria-pressed={s.v === value ? 'true' : 'false'} data-sfx="select">{s.label}</a>)}
+    </div>
+    <div class="mt-8 grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {games.map((g) => <GameCard game={g} />)}
+    </div>
+  </section>
+</Base>

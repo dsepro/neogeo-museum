@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+/* VT323 / Press Start 2P 沒有中文字形：用系統中文字型並縮小比例，避免中英混排時中文過大 */
+@font-face {
+  font-family: "CJK Fit";
+  src: local("Microsoft JhengHei"), local("Microsoft JhengHei UI"), local("PingFang TC"), local("Noto Sans CJK TC"), local("Noto Sans TC"), local("Source Han Sans TC");
+  size-adjust: 72%;
+  unicode-range: U+2E80-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
+@theme {
+  --color-ng-black: #000000;
+  --color-ng-ink: #07080b;
+  --color-ng-panel: #0e0f13;
+  --color-ng-panel2: #15161c;
+  --color-ng-line: #26272f;
+  --color-ng-mute: #8b8d99;
+  --color-ng-text: #e9e9ee;
+  --color-ng-yellow: #ffd200;
+  --color-ng-blue: #005bac;
+  --color-ng-blue-hi: #2f86e0;
+  --color-ng-red: #d4141e;
+  --color-ng-red-hi: #ff3b3b;
+  --color-ng-green: #2fae4a;
+  --font-pixel: "Press Start 2P", "DotGothic16", ui-monospace, monospace;
+  --font-vt: "VT323", "CJK Fit", "Noto Sans TC", ui-monospace, monospace;
+  --font-dot: "DotGothic16", "Noto Sans TC", sans-serif;
+  --font-sans: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", system-ui, sans-serif;
+}
+
+@layer base {
+  html { background: #000; color: var(--color-ng-text); color-scheme: dark; }
+  body { font-family: var(--font-sans); -webkit-font-smoothing: antialiased; min-height: 100vh; }
+  ::selection { background: var(--color-ng-yellow); color: #000; }
+  a { color: inherit; text-decoration: none; }
+  :focus-visible { outline: 3px solid var(--color-ng-yellow); outline-offset: 2px; }
+  img { image-rendering: auto; }
+}
+
+/* ---------- 字型工具 ---------- */
+.font-pixel { font-family: var(--font-pixel); letter-spacing: 0.02em; line-height: 1.5; }
+.font-vt { font-family: var(--font-vt); letter-spacing: 0.02em; }
+.font-dot { font-family: var(--font-dot); }
+.pixelated { image-rendering: pixelated; }
+
+/* ---------- 金屬紅（SNK 街機招牌字） ---------- */
+.metal-red {
+  background: linear-gradient(180deg, #ffd0d0 0%, #ff4848 22%, #c40a14 46%, #6e0008 50%, #ff2a2a 64%, #ff8080 78%, #7a0008 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #000) drop-shadow(0 0 1px #000);
+}
+.metal-yellow {
+  background: linear-gradient(180deg, #fff7c2 0%, #ffd200 40%, #b38a00 52%, #ffe14d 70%, #a87d00 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 #000);
+}
+.metal-bar {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.35) 0, rgba(255,255,255,0) 40%, rgba(0,0,0,.35) 100%),
+    linear-gradient(90deg, #6e0008, #d4141e 20%, #ff3b3b 50%, #d4141e 80%, #6e0008);
+}
+.blue-bar { background: linear-gradient(180deg, #2f86e0 0, #005bac 55%, #00376b 100%); }
+
+/* 街機機台側板的黃黑警示條 */
+.hazard {
+  background: repeating-linear-gradient(-45deg, #ffd200 0 10px, #000 10px 20px);
+}
+
+/* ---------- 閃爍 ---------- */
+@keyframes ng-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.blink { animation: ng-blink 1.1s steps(1) infinite; }
+
+/* ---------- 像素框 ---------- */
+.px-frame {
+  border: 2px solid var(--color-ng-line);
+  box-shadow: 4px 4px 0 #000, inset 0 0 0 1px #000;
+  background: var(--color-ng-panel);
+}
+.px-btn {
+  font-family: var(--font-pixel); font-size: 10px; line-height: 1;
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .7rem .9rem; min-height: 40px;
+  border: 2px solid currentColor; box-shadow: 3px 3px 0 #000;
+  transition: transform .06s, box-shadow .06s, background .15s, color .15s;
+}
+.px-btn:active { transform: translate(3px, 3px); box-shadow: 0 0 0 #000; }
+
+.chip {
+  font-family: var(--font-vt); font-size: 20px; line-height: 1;
+  padding: .35rem .6rem .25rem; min-height: 34px;
+  border: 1px solid var(--color-ng-line); color: var(--color-ng-mute); background: #0a0a0d;
+  transition: color .12s, background .12s, border-color .12s;
+}
+.chip:hover { color: #fff; border-color: #555; }
+.chip[aria-pressed="true"] { color: #000; background: var(--color-ng-yellow); border-color: var(--color-ng-yellow); }
+
+/* ---------- CRT 顯像管濾鏡 ---------- */
+.crt {
+  position: relative; overflow: hidden; isolation: isolate; background: #000;
+  border-radius: 4.5% / 6%;
+  box-shadow: 0 0 0 2px #050505, 0 0 0 5px #1c1c20, 0 0 0 6px #000, 0 10px 30px rgba(0,0,0,.6);
+}
+.crt__screen { position: relative; width: 100%; height: 100%; }
+.crt__screen > svg, .crt__screen > img { display: block; width: 100%; height: 100%; object-fit: cover; }
+html[data-crt="on"] .crt__screen { filter: saturate(1.18) contrast(1.06) brightness(1.06); }
+html[data-crt="on"][data-barrel="on"] .crt__screen { filter: url(#crt-barrel) saturate(1.18) contrast(1.06) brightness(1.06); }
+
+/* 掃描線 + RGB 光柵 */
+html[data-crt="on"] .crt::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 1px, rgba(0,0,0,.38) 2px, rgba(0,0,0,.38) 3px),
+    repeating-linear-gradient(90deg, rgba(255,0,0,.05) 0px, rgba(0,255,0,.035) 1px, rgba(0,0,255,.05) 2px, rgba(0,0,0,0) 3px);
+  animation: crt-flicker 6s infinite steps(60);
+}
+/* 暗角 + 玻璃反光 + 弧面陰影 */
+html[data-crt="on"] .crt::after {
+  content: ""; position: absolute; inset: 0; z-index: 3; pointer-events: none; border-radius: inherit;
+  background:
+    radial-gradient(120% 90% at 28% 12%, rgba(255,255,255,.10), rgba(255,255,255,0) 42%),
+    radial-gradient(ellipse at center, rgba(0,0,0,0) 56%, rgba(0,0,0,.42) 86%, rgba(0,0,0,.78) 100%);
+  box-shadow: inset 0 0 28px 6px rgba(0,0,0,.75), inset 0 0 2px 1px rgba(255,255,255,.06);
+}
+@keyframes crt-flicker {
+  0%, 100% { opacity: .92; } 7% { opacity: .86; } 8% { opacity: .95; } 45% { opacity: .9; } 46% { opacity: .82; } 47% { opacity: .93; }
+}
+/* 換台時的開機動畫 */
+@keyframes crt-on {
+  0% { transform: scale(1, .004); filter: brightness(4); }
+  45% { transform: scale(1, .004); filter: brightness(3); }
+  70% { transform: scale(1, 1.02); filter: brightness(1.6); }
+  100% { transform: scale(1, 1); filter: brightness(1); }
+}
+.crt-power { animation: crt-on .42s cubic-bezier(.2,.7,.3,1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .blink, html[data-crt="on"] .crt::before { animation: none !important; }
+  .crt-power { animation: none !important; }
+}
+
+/* ---------- 卡帶 ---------- */
+.cart {
+  position: relative; background: linear-gradient(180deg, #1b1b1f, #0b0b0d 60%, #151518);
+  border-radius: 6px 6px 3px 3px; box-shadow: inset 0 1px 0 rgba(255,255,255,.12), inset 0 -3px 0 rgba(0,0,0,.6), 6px 6px 0 #000;
+}
+.cart::before { /* 卡帶頂部的握把凹槽 */
+  content: ""; position: absolute; left: 8%; right: 8%; top: 4%; height: 3%;
+  background: repeating-linear-gradient(90deg, #050506 0 6px, #2a2a30 6px 8px); border-radius: 2px;
+}
+
+/* ---------- 遊戲卡片 hover ---------- */
+.game-card { transition: transform .12s ease, box-shadow .12s ease, border-color .12s; }
+.game-card:hover, .game-card:focus-visible { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 #000, 0 0 0 2px var(--color-ng-yellow); border-color: var(--color-ng-yellow); }
+
+/* ---------- 搖桿方向 & 按鍵 ---------- */
+.kbd-dir {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; font-size: 16px; line-height: 1;
+  background: #1a1b22; color: #fff; border: 1px solid #3a3b46; box-shadow: 0 2px 0 #000; font-family: var(--font-sans);
+}
+.kbd-dir[data-hold] { background: var(--color-ng-blue); border-color: #2f86e0; }
+.kbd-btn {
+  display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 999px;
+  font-family: var(--font-pixel); font-size: 10px; color: #000; box-shadow: inset 0 -3px 0 rgba(0,0,0,.35), 0 2px 0 #000;
+}
+
+/* ---------- DIP 開關 ---------- */
+.dip-bank { background: #b5121b; box-shadow: inset 0 0 0 2px #6e0008, 4px 4px 0 #000; }
+.dip-sw { width: 30px; height: 64px; background: #f4f4f4; position: relative; border: 2px solid #6e0008; cursor: pointer; }
+.dip-sw::after {
+  content: ""; position: absolute; left: 3px; right: 3px; height: 26px; background: #222; top: 3px; transition: top .12s;
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.2);
+}
+.dip-sw[aria-checked="false"]::after { top: calc(100% - 29px); }
+
+/* 文章內容 */
+.prose-ng p { line-height: 1.9; color: #cfd0d8; }
+.prose-ng p + p { margin-top: 1em; }
+.prose-ng strong { color: var(--color-ng-yellow); font-weight: 700; }
+
+/* 卷軸條 */
+.scroll-x { scrollbar-width: thin; scrollbar-color: #333 transparent; }

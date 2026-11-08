@@ -1,0 +1,32 @@
+---
+import Scene from './Scene.astro';
+import { GENRES } from '../lib/taxonomy';
+interface Props { src?: string; box?: string; slug: string; title: string; titleZh?: string; year: number; genre: 'fighting' | 'action' | 'sports-puzzle'; subgenre: string; developer: string; }
+const p = Astro.props;
+---
+{p.src || p.box ? (
+  <figure class="px-frame p-2">
+    <img src={p.src ?? p.box} alt={p.src ? `${p.title} 街機宣傳海報（Flyer）` : `${p.title} AES 盒裝封面`} class="w-full h-auto block" />
+    <figcaption class="mt-2 flex justify-between items-baseline">
+      <span class="font-pixel text-[8px] text-ng-yellow">{p.src ? 'ARCADE FLYER' : 'AES BOX ART'}</span>
+      <span class="text-xs text-ng-mute">{p.src ? '街機宣傳海報' : '家用版盒裝封面'}</span>
+    </figcaption>
+  </figure>
+) : (
+  <figure class="relative aspect-[3/4] overflow-hidden border-2 border-black shadow-[6px_6px_0_#000] bg-black" aria-label={`${p.title} 海報示意（尚未放入實物掃描）`}>
+    <div class="absolute inset-0 [&>svg]:w-full [&>svg]:h-full opacity-90"><Scene slug={p.slug} genre={p.genre} subgenre={p.subgenre} variant={7} /></div>
+    <div class="absolute inset-0 bg-[linear-gradient(180deg,rgba(0,0,0,.85)_0%,rgba(0,0,0,0)_28%,rgba(0,0,0,0)_50%,rgba(0,0,0,.94)_72%,#000_86%)]"></div>
+    <div class="absolute top-0 inset-x-0 metal-bar h-9 flex items-center justify-between px-3 border-b-2 border-black">
+      <span class="font-pixel text-[10px] text-white drop-shadow-[0_2px_0_#000]">NEO·GEO</span>
+      <span class="font-pixel text-[8px] text-ng-yellow drop-shadow-[0_1px_0_#000]">{p.developer}</span>
+    </div>
+    <div class="absolute inset-x-0 bottom-0 p-4 space-y-2">
+      <p class="font-pixel text-[13px] sm:text-[15px] leading-[1.45] metal-yellow">{p.title}</p>
+      {p.titleZh && <p class="font-dot text-lg text-white">{p.titleZh}</p>}
+      <div class="flex justify-between items-end pt-2 border-t border-white/20">
+        <span class="font-vt text-xl text-white">{p.year} · {GENRES[p.genre].zh}</span>
+        <span class="font-pixel text-[7px] text-white/60">FLYER · PLACEHOLDER</span>
+      </div>
+    </div>
+  </figure>
+)}

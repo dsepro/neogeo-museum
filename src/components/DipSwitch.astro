@@ -1,0 +1,106 @@
+---
+import { HARD_DIP, SOFT_DIP_COMMON } from '../lib/dip';
+interface Props { softDip?: { name: string; options: string; default?: string }[]; compact?: boolean; }
+const { softDip = [], compact = false } = Astro.props;
+---
+<div class="grid gap-8 lg:grid-cols-[auto_1fr]" data-dip>
+  <div>
+    <div class="dip-bank inline-block p-3 pb-2">
+      <div class="flex justify-between font-pixel text-[7px] text-white/90 mb-2 px-0.5"><span>ON ▲</span><span>DIP SW</span></div>
+      <div class="flex gap-1.5" role="group" aria-label="MVS 硬體 DIP 開關">
+        {HARD_DIP.map((s) => (
+          <button type="button" class="dip-sw" role="switch" aria-checked="false" data-n={s.n} data-sfx="select" aria-label={`SW${s.n} ${s.zh}`}></button>
+        ))}
+      </div>
+      <div class="flex gap-1.5 mt-1.5">
+        {HARD_DIP.map((s) => <span class="w-[30px] text-center font-pixel text-[8px] text-white">{s.n}</span>)}
+      </div>
+    </div>
+    <div class="mt-4 font-vt text-xl leading-tight space-y-0.5">
+      <p class="text-ng-mute">REG_DIPSW <span class="text-ng-mute/60">($300001)</span></p>
+      <p><span class="text-ng-yellow" data-dip-hex>0xFF</span> <span class="text-ng-mute" data-dip-bin>11111111</span></p>
+      <p class="text-xs font-sans text-ng-mute mt-2 max-w-[18rem]">Active-Low：開關撥到 ON 時該位元讀值為 0。點擊開關試試。</p>
+    </div>
+  </div>
+
+  <div class="min-w-0">
+    <table class="w-full text-sm border-2 border-ng-line">
+      <thead class="bg-ng-panel2 text-left">
+        <tr class="font-pixel text-[8px] text-ng-mute">
+          <th class="px-3 py-2.5 w-12">SW</th><th class="px-3 py-2.5">FUNCTION</th><th class="px-3 py-2.5 hidden sm:table-cell">OFF</th><th class="px-3 py-2.5">ON</th>
+        </tr>
+      </thead>
+      <tbody>
+        {HARD_DIP.map((s) => (
+          <tr class="border-t border-ng-line transition-colors" data-row={s.n}>
+            <td class="px-3 py-2.5 font-vt text-xl text-ng-yellow">{s.n}</td>
+            <td class="px-3 py-2.5"><span class="font-medium text-white">{s.zh}</span><span class="block font-pixel text-[7px] text-ng-mute mt-1">{s.name}</span></td>
+            <td class="px-3 py-2.5 text-ng-mute hidden sm:table-cell">{s.off}</td>
+            <td class="px-3 py-2.5 text-ng-text">{s.on}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+    <p class="text-xs text-ng-mute mt-3 leading-relaxed">
+      所有 MVS 主機板共用這組 8 位元開關；<strong class="text-ng-text">每款遊戲的難度、時間等設定則屬於 BIOS 內的「Soft DIP」</strong>。
+      進入方式：將 SW1 撥至 ON 後開機（或按下主機板 / 機台內的 TEST 鍵），在 BIOS 選單選擇 <span class="font-pixel text-[8px] text-ng-text">SETTING UP THE SOFT DIP</span> → 選擇卡帶插槽 → 調整後退出儲存。
+    </p>
+  </div>
+</div>
+
+{!compact && (
+  <div class="mt-10">
+    <h3 class="font-pixel text-[10px] text-ng-mute mb-3">SOFT DIP · BIOS 軟體設定</h3>
+    {softDip.length > 0 ? (
+      <table class="w-full text-sm border-2 border-ng-line">
+        <tbody>
+          {softDip.map((s) => (
+            <tr class="border-t border-ng-line first:border-t-0">
+              <td class="px-3 py-2.5 font-medium text-white">{s.name}</td>
+              <td class="px-3 py-2.5 text-ng-text">{s.options}</td>
+              <td class="px-3 py-2.5 text-ng-mute">{s.default && `預設：${s.default}`}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    ) : (
+      <>
+        <p class="text-sm text-ng-mute mb-3">此遊戲的 Soft DIP 項目尚未收錄。以下是 MVS 遊戲中常見的設定類別（實際項目以遊戲 BIOS 畫面為準）：</p>
+        <ul class="grid gap-2 sm:grid-cols-2">
+          {SOFT_DIP_COMMON.map((s) => (
+            <li class="bg-ng-panel border border-ng-line px-3 py-2.5 flex items-baseline justify-between gap-3">
+              <span><span class="text-white font-medium">{s.zh}</span> <span class="font-pixel text-[7px] text-ng-mute ml-1">{s.name}</span></span>
+              <span class="font-vt text-lg text-ng-yellow whitespace-nowrap">{s.options}</span>
+            </li>
+          ))}
+        </ul>
+      </>
+    )}
+  </div>
+)}
+
+<script>
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLElement>('[data-dip]').forEach((root) => {
+      if (root.dataset.bound) return;
+      root.dataset.bound = '1';
+      const sws = [...root.querySelectorAll<HTMLButtonElement>('.dip-sw')];
+      const render = () => {
+        let v = 0;
+        sws.forEach((b, i) => { if (b.getAttribute('aria-checked') !== 'true') v |= 1 << i; });
+        root.querySelector('[data-dip-hex]')!.textContent = '0x' + v.toString(16).toUpperCase().padStart(2, '0');
+        root.querySelector('[data-dip-bin]')!.textContent = v.toString(2).padStart(8, '0');
+      };
+      sws.forEach((b) => {
+        b.addEventListener('click', () => {
+          b.setAttribute('aria-checked', String(b.getAttribute('aria-checked') !== 'true'));
+          const row = root.querySelector<HTMLElement>(`[data-row="${b.dataset.n}"]`);
+          root.querySelectorAll('[data-row]').forEach((r) => r.classList.remove('bg-ng-blue/25'));
+          row?.classList.add('bg-ng-blue/25');
+          render();
+        });
+      });
+      render();
+    });
+  });
+</script>

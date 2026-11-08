@@ -1,0 +1,129 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crt from '../../components/Crt.astro';
+import Scene from '../../components/Scene.astro';
+import SectionHead from '../../components/SectionHead.astro';
+import DipSwitch from '../../components/DipSwitch.astro';
+import { SYSTEMS, COMPARE, TIMELINE } from '../../lib/history';
+import { url } from '../../lib/url';
+import { resolveMedia } from '../../lib/media';
+const demoShot = resolveMedia('kof98').screenshots[0];
+---
+<Base title="街機硬體展覽館" description="MVS、AES、Neo Geo CD、Neo Geo Pocket 的歷史與規格，以及 MVS 主機板 DIP 開關說明。">
+  <section class="mx-auto max-w-7xl px-4 pt-10">
+    <p class="font-pixel text-[9px] text-ng-blue-hi">HARDWARE ARCHIVE</p>
+    <h1 class="font-dot text-4xl sm:text-5xl text-white mt-3">街機硬體展覽館</h1>
+    <p class="text-ng-text/75 mt-4 max-w-2xl leading-8">同一顆 68000，四種形態：從機廳的多卡板，到客廳裡最昂貴的家用機、讀取漫長的 CD 版，再到口袋裡的微動開關搖桿。</p>
+
+    <nav class="mt-8 flex flex-wrap gap-1.5" aria-label="系統">
+      {SYSTEMS.map((s) => <a href={`#${s.id}`} class="chip" data-sfx="select">{s.name}</a>)}
+      <a href="#compare" class="chip" data-sfx="select">比較表</a>
+      <a href="#crt" class="chip" data-sfx="select">CRT</a>
+      <a href="#dip" class="chip" data-sfx="select">DIP SWITCH</a>
+    </nav>
+  </section>
+
+  {SYSTEMS.map((s, i) => (
+    <section id={s.id} class="scroll-mt-24 mx-auto max-w-7xl px-4 mt-20">
+      <div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] items-start">
+        <div>
+          <p class="font-vt text-2xl text-ng-mute">0{i + 1} · {s.years}</p>
+          <h2 class="font-pixel text-[clamp(1.1rem,3vw,1.9rem)] leading-tight text-white mt-3">{s.name}</h2>
+          <p class="text-ng-yellow mt-3">{s.full} <span class="text-ng-mute">／{s.zh}</span></p>
+          <p class="font-dot text-2xl text-white mt-6">{s.tagline}</p>
+          <div class="prose-ng mt-5">{s.history.map((h) => <p>{h}</p>)}</div>
+        </div>
+        <div class="border-2 border-ng-line bg-black">
+          <div class:list={['h-9 px-4 flex items-center justify-between border-b-2 border-black', i % 2 ? 'blue-bar' : 'metal-bar']}>
+            <span class="font-pixel text-[9px] text-white drop-shadow-[0_1px_0_#000]">SPEC SHEET</span>
+            <span class="font-pixel text-[8px] text-ng-yellow drop-shadow-[0_1px_0_#000]">{s.name}</span>
+          </div>
+          <table class="w-full text-sm">
+            <tbody>
+              {s.specs.map(([k, v]) => (
+                <tr class="border-t border-ng-line first:border-t-0 align-top">
+                  <th scope="row" class="text-left font-normal text-ng-mute px-4 py-3 w-36 whitespace-nowrap">{k}</th>
+                  <td class="px-4 py-3 text-ng-text">{v}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  ))}
+
+  <section id="compare" class="scroll-mt-24 mx-auto max-w-7xl px-4 mt-24">
+    <SectionHead no="05" en="COMPARE" zh="四機規格比較" />
+    <div class="overflow-x-auto scroll-x border-2 border-ng-line">
+      <table class="w-full min-w-[720px] text-sm">
+        <thead>
+          <tr class="bg-ng-panel2">
+            <th class="text-left px-4 py-3 w-28"></th>
+            {SYSTEMS.map((s) => <th class="text-left px-4 py-3 font-pixel text-[9px] text-ng-yellow">{s.name}</th>)}
+          </tr>
+        </thead>
+        <tbody>
+          {COMPARE.map((r) => (
+            <tr class="border-t border-ng-line">
+              <th scope="row" class="text-left font-normal text-ng-mute px-4 py-3">{r.label}</th>
+              {r.values.map((v) => <td class="px-4 py-3 font-vt text-xl leading-tight">{v}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="crt" class="scroll-mt-24 mx-auto max-w-7xl px-4 mt-24">
+    <SectionHead no="06" en="CRT FILTER" zh="顯像管質感重現" />
+    <div class="grid gap-8 lg:grid-cols-[1fr_1fr_0.9fr] items-start">
+      <figure>
+        <div class="aspect-[320/224] border-2 border-ng-line"><img src={demoShot} alt="The King of Fighters '98 原始 320×224 畫面" class="w-full h-full pixelated" /></div>
+        <figcaption class="mt-3"><span class="font-pixel text-[8px] text-ng-mute">RAW</span> <span class="text-xs text-ng-mute">原始點陣</span></figcaption>
+      </figure>
+      <figure>
+        <Crt><img src={demoShot} alt="The King of Fighters '98 套用 CRT 濾鏡" /></Crt>
+        <figcaption class="mt-3"><span class="font-pixel text-[8px] text-ng-yellow">CRT</span> <span class="text-xs text-ng-mute">掃描線 + 弧面</span></figcaption>
+      </figure>
+      <div class="text-sm text-ng-text/80 leading-7 space-y-3">
+        <p>站內所有截圖都套用四層效果：<strong class="text-ng-yellow">3px 週期的水平掃描線</strong>、極淡的 RGB 光柵、邊緣暗角與玻璃反光，以及以 SVG <code>feDisplacementMap</code> 實作的<strong class="text-ng-yellow">桶形畸變</strong>，模擬顯像管的弧面玻璃。</p>
+        <p>右上角的 <span class="font-pixel text-[8px]">CRT</span> 按鈕可隨時關閉；系統偏好「減少動態效果」時會停用閃爍。Safari 會自動略過畸變層，只保留掃描線。</p>
+        <button type="button" class="px-btn text-white hover:bg-ng-blue" id="barrel-toggle" data-sfx="select">BARREL <span data-barrel-label>ON</span></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="dip" class="scroll-mt-24 mx-auto max-w-7xl px-4 mt-24">
+    <SectionHead no="07" en="DIP SWITCH" zh="MVS 主機板設定說明" />
+    <DipSwitch />
+  </section>
+
+  <section class="mx-auto max-w-7xl px-4 mt-24">
+    <SectionHead no="08" en="TIMELINE" zh="平台大事記" />
+    <ol class="border-l-2 border-ng-line ml-2 space-y-5">
+      {TIMELINE.map((t) => (
+        <li class="relative pl-6">
+          <span class:list={['absolute -left-[7px] top-1.5 w-3 h-3', t.hw ? 'bg-ng-yellow' : 'bg-ng-blue']}></span>
+          <a href={url(`/browse/year/${t.year}/`)} class="font-vt text-2xl text-ng-yellow hover:text-white mr-3" data-sfx="chime">{t.year}</a>
+          <span class:list={[t.hw ? 'text-white' : 'text-ng-text/75']}>{t.text}</span>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const b = document.getElementById('barrel-toggle'); if (!b) return;
+      const lab = b.querySelector('[data-barrel-label]')!;
+      const sync = () => (lab.textContent = document.documentElement.dataset.barrel === 'on' ? 'ON' : 'OFF');
+      b.addEventListener('click', () => {
+        const d = document.documentElement;
+        d.dataset.barrel = d.dataset.barrel === 'on' ? 'off' : 'on';
+        localStorage.setItem('ngm:barrel', d.dataset.barrel);
+        sync();
+      });
+      sync();
+    });
+  </script>
+</Base>

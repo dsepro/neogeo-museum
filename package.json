@@ -1,0 +1,23 @@
+{
+  "name": "neogeo-museum",
+  "version": "1.0.0",
+  "description": "Neo Geo Arcade Game Museum 街機文化展示館 — Astro + Tailwind static site",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "seed": "python scripts/seed_games.py",
+    "astro": "astro"
+  },
+  "type": "module",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.5",
+    "astro": "^7.4.7",
+    "tailwindcss": "^4.3.5",
+    "three": "^0.187.0"
+  },
+  "private": true,
+  "devDependencies": {
+    "@types/three": "^0.187.0"
+  }
+}

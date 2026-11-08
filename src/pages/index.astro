@@ -1,0 +1,205 @@
+---
+import fs from 'node:fs';
+import path from 'node:path';
+import Base from '../layouts/Base.astro';
+import Crt from '../components/Crt.astro';
+import SectionHead from '../components/SectionHead.astro';
+import { getGames } from '../lib/games';
+import { resolveMedia } from '../lib/media';
+import { GENRES, DEVELOPERS, BUTTON_COLORS, type GenreKey, type DevKey } from '../lib/taxonomy';
+import { SYSTEMS } from '../lib/history';
+import { url } from '../lib/url';
+
+const games = await getGames();
+// CD 封面牆 atlas（由 scripts/build_cd_wall.py 產生）
+const atlasMeta = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'public', 'media', 'cd-wall', 'atlas.json'), 'utf-8'));
+const tileOf = new Map<string, number>(atlasMeta.order.map((s: string, i: number) => [s, i]));
+const wallGames = games
+  .filter((g) => tileOf.has(g.id))
+  .map((g) => {
+    const m = resolveMedia(g.id, g.data.media);
+    return {
+      id: g.id, title: g.data.title, zh: g.data.titleZh, year: g.data.year, dev: g.data.developerName, devKey: g.data.developer,
+      genre: g.data.genre, href: url(`/games/${g.id}/`), snap: m.screenshots[0] ?? '', cd: url(`media/games/${g.id}/cd.webp`),
+      tile: tileOf.get(g.id)!, big: !!g.data.featured,
+    };
+  });
+const atlas = { cols: atlasMeta.cols, rows: atlasMeta.rows, logo: atlasMeta.logo, hi: url('media/cd-wall/atlas.webp'), lo: url('media/cd-wall/atlas-lo.webp') };
+
+const byGenre = (Object.keys(GENRES) as GenreKey[]).map((k) => ({ k, n: games.filter((g) => g.data.genre === k).length, sample: games.find((g) => g.data.genre === k && g.data.featured)! }));
+const byDev = (Object.keys(DEVELOPERS) as DevKey[])
+  .map((k) => ({ k, n: games.filter((g) => g.data.developer === k).length }))
+  .sort((a, b) => (a.k === 'other' ? 1 : b.k === 'other' ? -1 : b.n - a.n));
+const ord = ['1ST', '2ND', '3RD', '4TH'];
+const BTNS = [['A', '進入'], ['B', '隨機'], ['C', '上一張'], ['D', '下一張']];
+---
+<Base>
+  <!-- ===== CD 封面牆（three.js） ===== -->
+  <section id="cdwall" class="relative h-[calc(100svh-7.5rem)] md:h-[calc(100svh-4.4rem)] min-h-[620px] overflow-hidden border-b-2 border-ng-line select-none" data-games={JSON.stringify(wallGames)} data-atlas={JSON.stringify(atlas)}>
+    <div data-stage class="absolute inset-0"></div>
+
+    <!-- WebGL 不可用時的備援：平面封面牆 -->
+    <div data-fallback hidden class="absolute inset-0 overflow-hidden">
+      <div class="absolute inset-0 grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-12 gap-1 p-1 opacity-60">
+        {wallGames.map((g) => <a href={g.href}><img src={g.cd} alt={g.title} class="w-full aspect-square object-cover" loading="lazy" /></a>)}
+      </div>
+    </div>
+
+    <div class="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(180deg,transparent_0_2px,rgba(0,0,0,.2)_2px_3px)] mix-blend-multiply"></div>
+    <div class="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_50%,rgba(0,0,0,.7)_100%)]"></div>
+    <div class="pointer-events-none absolute inset-x-0 top-0 h-48 bg-gradient-to-b from-black/90 to-transparent"></div>
+    <div class="pointer-events-none absolute inset-x-0 bottom-0 h-64 bg-gradient-to-t from-black/90 to-transparent"></div>
+
+    <div class="pointer-events-none absolute inset-0">
+      <div class="mx-auto max-w-7xl h-full px-4 py-5 sm:py-7 flex flex-col justify-between">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <h1>
+            <span class="block font-pixel text-[clamp(1.5rem,3.6vw,2.8rem)] leading-[1.05] metal-red whitespace-nowrap">NEO GEO</span>
+            <span class="block font-pixel text-[clamp(.6rem,1.2vw,.85rem)] text-ng-yellow mt-3">CD COVER WALL · ARCADE MUSEUM</span>
+            <span class="block font-dot text-xl sm:text-2xl text-white mt-2">街機文化展示館</span>
+          </h1>
+          <div class="pointer-events-auto hidden sm:flex flex-col items-end gap-2">
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="類型篩選">
+              {(Object.keys(GENRES) as GenreKey[]).map((k) => <button type="button" class="chip !bg-black/70 aria-pressed:!bg-ng-yellow" data-filter={`genre:${k}`} aria-pressed="false" data-sfx="select">{GENRES[k].zh}</button>)}
+            </div>
+            <div class="flex flex-wrap gap-1.5" role="group" aria-label="開發商篩選">
+              {(Object.keys(DEVELOPERS) as DevKey[]).map((k) => <button type="button" class="chip !bg-black/70 aria-pressed:!bg-ng-yellow" data-filter={`dev:${k}`} aria-pressed="false" data-sfx="select">{DEVELOPERS[k].name}</button>)}
+            </div>
+            <p class="font-vt text-xl text-ng-mute leading-none">LIT <span class="text-ng-yellow tabular-nums" data-match>{String(wallGames.length).padStart(3, '0')}</span> / {wallGames.length}</p>
+          </div>
+        </div>
+
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-3">
+          <div class="pointer-events-auto w-full max-w-md bg-black/80 border-2 border-ng-line shadow-[6px_6px_0_#000]">
+            <div class="metal-bar h-8 flex items-center justify-between px-3 border-b-2 border-black">
+              <span class="font-pixel text-[8px] text-white drop-shadow-[0_1px_0_#000]">NOW PLAYING</span>
+              <button type="button" data-coin class="font-pixel text-[8px] text-ng-yellow drop-shadow-[0_1px_0_#000] hover:text-white">INSERT COIN</button>
+            </div>
+            <div class="p-3 sm:p-4">
+              <div data-idle>
+                <p class="font-bold text-white">點擊牆上任何一隻 CD</p>
+                <p class="text-sm text-ng-mute mt-1 hidden sm:block">{wallGames.length} 款遊戲隨機拼貼 · 拖曳旋轉 · 用上方按鈕篩選亮燈</p>
+              </div>
+              <div data-info hidden>
+                <p class="font-bold text-lg text-white leading-snug" data-i-title></p>
+                <p class="text-ng-mute text-sm mt-0.5 min-h-5" data-i-zh></p>
+                <p class="font-vt text-2xl text-ng-yellow leading-none mt-2" data-i-meta></p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <a href="#" class="px-btn bg-ng-yellow text-black border-ng-yellow" data-i-link data-sfx="chime">PLAY <span class="font-sans text-sm font-bold">展示頁</span></a>
+                  <button type="button" class="px-btn text-white hover:bg-ng-blue" data-close>✕ <span class="font-sans text-sm">放回</span></button>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-ng-line hidden sm:flex items-center gap-3 flex-wrap">
+                {BTNS.map(([k, label]) => (
+                  <button type="button" data-btn={k} class="group flex items-center gap-1.5" aria-label={`${k}：${label}`}>
+                    <span class="kbd-btn !w-8 !h-8 !text-[11px] group-hover:brightness-125" style={`background:${BUTTON_COLORS[k]}`}>{k}</span>
+                    <span class="text-xs text-ng-mute group-hover:text-white">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <ul class="hidden md:grid grid-cols-2 gap-x-5 gap-y-1.5 text-xs text-ng-mute bg-black/70 border border-ng-line px-4 py-3 pointer-events-auto">
+            <li><span class="font-pixel text-[8px] text-white">DRAG</span> 旋轉封面牆</li>
+            <li><span class="font-pixel text-[8px] text-white">CLICK</span> 抽出 CD／再點進入</li>
+            <li><span class="font-pixel text-[8px] text-white">← →</span> 上一張／下一張</li>
+            <li><span class="font-pixel text-[8px] text-white">ESC</span> 放回牆上</li>
+            <li><span class="font-pixel text-[8px] text-white">A B C D</span> 鍵盤同樣可用</li>
+            <li><span class="font-pixel text-[8px] text-white">5</span> 投幣</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div data-tip hidden class="pointer-events-none absolute z-10 bg-ng-yellow text-black text-xs font-bold px-2 py-1 shadow-[3px_3px_0_#000] whitespace-nowrap"></div>
+    <div data-loading class="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-3 font-vt text-2xl text-ng-yellow transition-opacity duration-500">LOADING 000%</div>
+  </section>
+
+  <!-- ===== 類型 ===== -->
+  <section class="mx-auto max-w-7xl px-4 mt-20">
+    <SectionHead no="01" en="BY GENRE" zh="按類型瀏覽" />
+    <div class="grid gap-5 lg:grid-cols-[1.4fr_1fr_1fr]">
+      {byGenre.map((g, i) => (
+        <a href={url(`/browse/genre/${g.k}/`)} class="game-card group block bg-ng-panel border-2 border-ng-line shadow-[4px_4px_0_#000]" data-sfx="chime">
+          <Crt class="m-3 mb-0"><img src={resolveMedia(g.sample.id, g.sample.data.media).screenshots[0]} alt={`${g.sample.data.title} 遊戲畫面`} loading="lazy" /></Crt>
+          <div class="p-4 sm:p-5">
+            <div class="flex items-baseline justify-between">
+              <h3 class="font-pixel text-[11px] text-ng-yellow">{GENRES[g.k].en}</h3>
+              <span class="font-vt text-3xl text-white leading-none tabular-nums">{String(g.n).padStart(3, '0')}</span>
+            </div>
+            <p class="text-xl font-bold text-white mt-2">{GENRES[g.k].zh}</p>
+            <p class:list={['text-sm text-ng-mute mt-2 leading-relaxed', i > 0 && 'line-clamp-3']}>{GENRES[g.k].blurb}</p>
+            <p class="text-xs text-ng-text/70 mt-3">{GENRES[g.k].examples}</p>
+          </div>
+        </a>
+      ))}
+    </div>
+  </section>
+
+  <!-- ===== 04 開發商：排行榜 ===== -->
+  <section class="mx-auto max-w-7xl px-4 mt-24 grid gap-10 lg:grid-cols-[1fr_1fr] items-start">
+    <div>
+      <SectionHead no="02" en="BY DEVELOPER" zh="按開發商瀏覽" />
+      <div class="bg-black border-2 border-ng-line p-5 sm:p-7">
+        <p class="font-pixel text-[10px] text-center text-ng-red-hi mb-6">— HIGH SCORE —</p>
+        <table class="w-full font-pixel text-[10px] sm:text-xs">
+          <thead><tr class="text-ng-mute text-[8px]"><th class="text-left pb-4">RANK</th><th class="text-left pb-4">NAME</th><th class="text-right pb-4">GAMES</th></tr></thead>
+          <tbody>
+            {byDev.map((d, i) => (
+              <tr>
+                <td class:list={['py-3', i === 0 ? 'text-ng-yellow' : 'text-white']}>{d.k === 'other' ? '---' : ord[i]}</td>
+                <td class="py-3"><a href={url(`/browse/developer/${d.k}/`)} class="text-white hover:text-ng-yellow" data-sfx="chime">{DEVELOPERS[d.k].name}</a></td>
+                <td class="py-3 text-right text-ng-yellow tabular-nums">{String(d.n).padStart(5, '0')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <ul class="space-y-5 lg:pt-16">
+      {byDev.map((d) => (
+        <li class="border-l-0">
+          <a href={url(`/browse/developer/${d.k}/`)} class="group block" data-sfx="chime">
+            <p class="font-bold text-white group-hover:text-ng-yellow">{DEVELOPERS[d.k].zh}</p>
+            <p class="text-sm text-ng-mute leading-relaxed mt-1">{DEVELOPERS[d.k].blurb}</p>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </section>
+
+  <!-- ===== 05 硬體 ===== -->
+  <section class="mx-auto max-w-7xl px-4 mt-24">
+    <SectionHead no="03" en="HARDWARE ARCHIVE" zh="街機硬體展覽館">
+      <a href={url('/hardware/')} class="ml-auto font-pixel text-[9px] text-ng-yellow hover:text-white" data-sfx="chime">VIEW ALL ▶</a>
+    </SectionHead>
+    <ol class="grid sm:grid-cols-2 lg:grid-cols-4 border-2 border-ng-line divide-y-2 sm:divide-y-0 sm:divide-x-2 divide-ng-line">
+      {SYSTEMS.map((s) => (
+        <li>
+          <a href={url(`/hardware/#${s.id}`)} class="group block p-5 h-full hover:bg-ng-panel" data-sfx="chime">
+            <p class="font-vt text-xl text-ng-mute">{s.years}</p>
+            <p class="font-pixel text-xs text-white group-hover:text-ng-yellow mt-2 leading-relaxed">{s.name}</p>
+            <p class="text-sm text-ng-blue-hi mt-1">{s.zh}</p>
+            <p class="text-sm text-ng-mute mt-4">{s.tagline}</p>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <script>
+    import { mountCdWall } from '../scripts/cdwall3d';
+    let cleanup: (() => void) | null = null;
+    document.addEventListener('astro:page-load', () => {
+      const root = document.getElementById('cdwall');
+      if (!root) return;
+      cleanup = mountCdWall(root);
+      if (!cleanup) {
+        root.querySelector<HTMLElement>('[data-fallback]')!.hidden = false;
+        root.querySelector('[data-loading]')?.remove();
+      }
+    });
+    document.addEventListener('astro:before-swap', () => { cleanup?.(); cleanup = null; });
+  </script>
+</Base>

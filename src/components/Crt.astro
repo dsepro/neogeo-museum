@@ -1,0 +1,8 @@
+---
+/** CRT 顯像管框：掃描線 + 暗角 + 桶形畸變（可由頂部按鈕關閉） */
+interface Props { class?: string; ratio?: string; id?: string; }
+const { class: cls = '', ratio = '320 / 224', id } = Astro.props;
+---
+<div class:list={['crt', cls]} style={`aspect-ratio:${ratio}`} id={id}>
+  <div class="crt__screen"><slot /></div>
+</div>

@@ -1,0 +1,158 @@
+---
+import Base from '../../layouts/Base.astro';
+import Crt from '../../components/Crt.astro';
+import Scene from '../../components/Scene.astro';
+import Flyer from '../../components/Flyer.astro';
+import SectionHead from '../../components/SectionHead.astro';
+import DipSwitch from '../../components/DipSwitch.astro';
+import OstPlayer from '../../components/OstPlayer.astro';
+import GameCard from '../../components/GameCard.astro';
+import { getGames, type Game } from '../../lib/games';
+import { resolveMedia } from '../../lib/media';
+import { GENRES, DEVELOPERS } from '../../lib/taxonomy';
+import { url } from '../../lib/url';
+import { render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const games = await getGames();
+  return games.map((g, i) => ({ params: { slug: g.id }, props: { game: g, prev: games[i - 1], next: games[i + 1], all: games } }));
+}
+interface Props { game: Game; prev?: Game; next?: Game; all: Game[]; }
+const { game, prev, next, all } = Astro.props;
+const d = game.data;
+const media = resolveMedia(game.id, d.media);
+const { Content } = await render(game);
+const related = all
+  .filter((g) => g.id !== game.id && (g.data.developer === d.developer || g.data.year === d.year) && g.data.genre === d.genre)
+  .slice(0, 5);
+const dev = DEVELOPERS[d.developer];
+const sections = [
+  ['flyer', 'FLYER', '海報'],
+  ['screens', 'SCREENS', '截圖'],
+  ['dip', 'DIP SW', '機板設定'],
+  ['ost', 'OST', '原聲試聽'],
+];
+const shots = media.screenshots.length ? media.screenshots : null;
+---
+<Base title={d.titleZh ? `${d.title}（${d.titleZh}）` : d.title} description={game.body?.slice(0, 120)}>
+  <article class="mx-auto max-w-7xl px-4 pt-8">
+    <nav class="font-pixel text-[8px] text-ng-mute flex flex-wrap gap-2" aria-label="麵包屑">
+      <a href={url('/games/')} class="hover:text-ng-yellow" data-sfx="back">GAMES</a><span>/</span>
+      <a href={url(`/browse/year/${d.year}/`)} class="hover:text-ng-yellow" data-sfx="chime">{d.year}</a><span>/</span>
+      <a href={url(`/browse/genre/${d.genre}/`)} class="hover:text-ng-yellow" data-sfx="chime">{GENRES[d.genre].en}</a>
+    </nav>
+
+    <!-- 標頭 -->
+    <header class="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] items-start">
+      <div>
+        <h1 class="font-pixel text-[clamp(1.25rem,3.6vw,2.4rem)] leading-[1.35] metal-yellow">{d.title}</h1>
+        {d.titleZh && <p class="font-dot text-3xl text-white mt-4">{d.titleZh}</p>}
+        {d.titleJa && <p class="text-ng-mute mt-1">{d.titleJa}</p>}
+        <div class="prose-ng mt-6 max-w-2xl"><Content /></div>
+
+        <dl class="mt-8 grid grid-cols-2 sm:grid-cols-4 border-2 border-ng-line bg-black">
+          {[
+            ['YEAR', String(d.year), `/browse/year/${d.year}/`],
+            ['GENRE', GENRES[d.genre].zh, `/browse/genre/${d.genre}/`],
+            ['MAKER', d.developerName, `/browse/developer/${d.developer}/`],
+            ['TYPE', d.subgenre, null],
+          ].map(([k, v, href]) => (
+            <div class="p-3.5 border-ng-line border-r border-b sm:border-b-0 last:border-r-0">
+              <dt class="font-pixel text-[7px] text-ng-mute">{k}</dt>
+              <dd class="mt-2 font-vt text-2xl leading-none text-ng-yellow">{href ? <a href={url(href)} class="hover:text-white" data-sfx="chime">{v}</a> : <span class="text-white text-lg font-sans">{v}</span>}</dd>
+            </div>
+          ))}
+        </dl>
+        {d.developer === 'other' && <p class="text-xs text-ng-mute mt-3">分類於「{dev.zh}」。</p>}
+
+        <nav class="mt-8 flex flex-wrap gap-1.5" aria-label="章節">
+          {sections.map(([id, en, zh], i) => (
+            <a href={`#${id}`} class="chip" data-sfx="select"><span class="text-ng-blue-hi">0{i + 1}</span> {en} <span class="font-sans text-xs opacity-70">{zh}</span></a>
+          ))}
+        </nav>
+      </div>
+
+      <div id="flyer" class="scroll-mt-24">
+        <Flyer src={media.flyer} box={media.aes} slug={game.id} title={d.title} titleZh={d.titleZh} year={d.year} genre={d.genre} subgenre={d.subgenre} developer={d.developerName} />
+      </div>
+    </header>
+
+    <!-- 截圖 -->
+    <section class="mt-20">
+      <SectionHead id="screens" no="02" en="SCREENS" zh="遊戲截圖" note={shots ? `${shots.length} 張 · 點擊放大` : '示意畫面（程式產生）· 點擊放大'} />
+      <div class:list={['grid gap-6 sm:grid-cols-2', !shots || shots.length > 2 ? 'lg:grid-cols-3' : 'max-w-5xl']} data-gallery>
+        {(shots ?? [0, 1, 2]).map((s, i) => {
+          const label = typeof s !== 'string' ? null : /title/i.test(s) ? ['TITLE SCREEN', '標題畫面'] : /ingame|snap/i.test(s) ? ['IN-GAME', '遊戲畫面'] : [`SHOT ${i + 1}`, ''];
+          return (
+            <button type="button" class="text-left group" data-shot={i} data-sfx="select" aria-label={`放大截圖 ${i + 1}`}>
+              <Crt class="group-hover:shadow-[0_0_0_2px_#050505,0_0_0_5px_#ffd200,0_0_0_6px_#000]">
+                {typeof s === 'string' ? <img src={s} alt={`${d.title} ${label?.[1] || '截圖'}`} loading="lazy" width="320" height="224" /> : <Scene slug={game.id} genre={d.genre} subgenre={d.subgenre} variant={s} />}
+              </Crt>
+              {label && <span class="mt-3 flex items-baseline gap-2"><span class="font-pixel text-[8px] text-ng-yellow">{label[0]}</span><span class="text-xs text-ng-mute">{label[1]} · 320×224</span></span>}
+            </button>
+          );
+        })}
+      </div>
+      {!shots && (
+        <p class="text-xs text-ng-mute mt-4">放入 <code class="text-ng-text">public/media/games/{game.id}/screens/</code> 的圖片會自動取代示意畫面。建議使用 320×224 原生解析度截圖，CRT 濾鏡會以像素放大顯示。</p>
+      )}
+      <dialog class="bg-transparent p-0 m-auto max-w-[min(96vw,1100px)] w-full backdrop:bg-black/85" data-lightbox>
+        <Crt class="w-full"><div data-lightbox-slot class="w-full h-full [&>svg]:w-full [&>svg]:h-full [&>img]:w-full [&>img]:h-full [&>img]:object-cover pixelated"></div></Crt>
+        <form method="dialog" class="text-center mt-4"><button class="px-btn text-white" data-sfx="back">CLOSE ✕</button></form>
+      </dialog>
+    </section>
+
+    <!-- DIP -->
+    <section class="mt-20">
+      <SectionHead id="dip" no="03" en="DIP SWITCH" zh="街機機板設定說明" />
+      <DipSwitch softDip={d.softDip} />
+    </section>
+
+    <!-- OST -->
+    <section class="mt-20">
+      <SectionHead id="ost" no="04" en="SOUND TEST" zh="經典原聲試聽" />
+      <div class="max-w-3xl"><OstPlayer tracks={media.ost} slug={game.id} genre={d.genre} title={d.title} /></div>
+    </section>
+
+    <!-- 前後 -->
+    <nav class="mt-20 grid sm:grid-cols-2 gap-4" aria-label="上一款 / 下一款">
+      {prev ? (
+        <a href={url(`/games/${prev.id}/`)} class="group border-2 border-ng-line p-4 hover:border-ng-yellow" data-sfx="chime">
+          <span class="font-pixel text-[8px] text-ng-mute">◀ PREV · {prev.data.year}</span>
+          <span class="block mt-2 font-bold text-white group-hover:text-ng-yellow">{prev.data.title}</span>
+        </a>
+      ) : <span></span>}
+      {next && (
+        <a href={url(`/games/${next.id}/`)} class="group border-2 border-ng-line p-4 hover:border-ng-yellow text-right" data-sfx="chime">
+          <span class="font-pixel text-[8px] text-ng-mute">{next.data.year} · NEXT ▶</span>
+          <span class="block mt-2 font-bold text-white group-hover:text-ng-yellow">{next.data.title}</span>
+        </a>
+      )}
+    </nav>
+
+    {related.length > 0 && (
+      <section class="mt-20">
+        <SectionHead en="RELATED" zh="同時期 / 同廠商" />
+        <div class="grid gap-5 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">{related.map((g) => <GameCard game={g} />)}</div>
+      </section>
+    )}
+  </article>
+
+  <script>
+    document.addEventListener('astro:page-load', () => {
+      const gal = document.querySelector('[data-gallery]');
+      const dlg = document.querySelector<HTMLDialogElement>('[data-lightbox]');
+      if (!gal || !dlg) return;
+      const slot = dlg.querySelector('[data-lightbox-slot]')!;
+      gal.querySelectorAll<HTMLButtonElement>('[data-shot]').forEach((b) =>
+        b.addEventListener('click', () => {
+          const src = b.querySelector('.crt__screen')!;
+          slot.innerHTML = src.innerHTML;
+          dlg.showModal();
+          slot.parentElement!.classList.remove('crt-power'); void (slot as HTMLElement).offsetWidth; slot.parentElement!.classList.add('crt-power');
+        }),
+      );
+      dlg.addEventListener('click', (e) => { if (e.target === dlg) dlg.close(); });
+    });
+  </script>
+</Base>

@@ -1,0 +1,192 @@
+---
+import '../styles/global.css';
+import { ClientRouter } from 'astro:transitions';
+import { url } from '../lib/url';
+import { CRT_MAP } from '../lib/crtMap';
+
+interface Props { title?: string; description?: string; }
+const { title, description = 'Neo Geo 街機文化展示館：1990–2004 年 MVS / AES 遊戲典藏、出招表、DIP 設定與硬體檔案。' } = Astro.props;
+const fullTitle = title ? `${title} — NEO GEO MUSEUM 街機文化展示館` : 'NEO GEO MUSEUM 街機文化展示館';
+const path = Astro.url.pathname.replace(import.meta.env.BASE_URL.replace(/\/$/, ''), '') || '/';
+const nav = [
+  { href: '/', label: '展館', en: 'MUSEUM', match: (p: string) => p === '/' },
+  { href: '/games/', label: '遊戲典藏', en: 'GAMES', match: (p: string) => p.startsWith('/games') || p.startsWith('/browse') },
+  { href: '/hardware/', label: '硬體館', en: 'HARDWARE', match: (p: string) => p.startsWith('/hardware') },
+];
+---
+<!doctype html>
+<html lang="zh-Hant-TW" data-crt="on">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" href={url('favicon.svg')} type="image/svg+xml" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&family=VT323&display=swap"
+    />
+    <script is:inline>
+      (function () {
+        function apply() {
+          var d = document.documentElement;
+          d.dataset.crt = localStorage.getItem('ngm:crt') === 'off' ? 'off' : 'on';
+          var ua = navigator.userAgent;
+          var safari = /Safari\//.test(ua) && !/Chrom(e|ium)|Edg\//.test(ua);
+          d.dataset.barrel = !safari && localStorage.getItem('ngm:barrel') !== 'off' ? 'on' : 'off';
+          d.dataset.sound = localStorage.getItem('ngm:sound') === 'on' ? 'on' : 'off';
+        }
+        apply();
+        document.addEventListener('astro:after-swap', apply);
+      })();
+    </script>
+    <ClientRouter />
+  </head>
+  <body class="bg-black">
+    <!-- CRT 桶形畸變濾鏡（feDisplacementMap） -->
+    <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+      <filter id="crt-barrel" x="0" y="0" width="1" height="1" filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+        <feImage href={CRT_MAP} x="0" y="0" width="1" height="1" preserveAspectRatio="none" result="map" />
+        <feDisplacementMap in="SourceGraphic" in2="map" scale="0.06" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
+
+    <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ng-yellow text-black px-3 py-2 font-pixel text-xs">跳至內容</a>
+
+    <header class="sticky top-0 z-40 bg-black/92 backdrop-blur-[2px] border-b-2 border-ng-line" transition:persist="site-header">
+      <div class="hazard h-1.5"></div>
+      <div class="mx-auto max-w-7xl px-4 pt-2.5 md:pt-0 md:h-16 flex flex-wrap md:flex-nowrap items-center gap-x-4">
+        <a href={url('/')} class="flex items-center gap-3 shrink-0" data-sfx="chime" aria-label="NEO GEO MUSEUM 首頁">
+          <span class="grid place-items-center w-9 h-9 metal-bar border-2 border-black shadow-[3px_3px_0_#000]">
+            <span class="font-pixel text-[11px] text-white drop-shadow-[0_2px_0_#000]">N</span>
+          </span>
+          <span class="leading-none">
+            <span class="block font-pixel text-[11px] text-white tracking-wider">NEO GEO</span>
+            <span class="block font-pixel text-[8px] text-ng-yellow mt-1.5">ARCADE MUSEUM</span>
+          </span>
+        </a>
+
+        <nav class="order-last w-full md:order-none md:w-auto md:flex-1 overflow-x-auto scroll-x -mx-3 md:mx-0" aria-label="主選單">
+          <ul class="flex items-center gap-1 min-w-max">
+            {nav.map((n) => (
+              <li>
+                <a
+                  href={url(n.href)}
+                  data-sfx="chime"
+                  data-nav={n.href}
+                  aria-current={n.match(path) ? 'page' : undefined}
+                  class="group flex items-baseline gap-2 px-3 py-2 border-b-2 border-transparent aria-[current=page]:border-ng-yellow hover:border-ng-blue-hi"
+                >
+                  <span class="font-pixel text-[9px] text-ng-mute group-hover:text-white group-aria-[current=page]:text-ng-yellow">{n.en}</span>
+                  <span class="text-sm text-ng-text/80 hidden sm:inline">{n.label}</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        <div class="ml-auto flex items-center gap-2 shrink-0">
+          <span class="hidden md:inline font-vt text-xl text-ng-yellow tabular-nums" aria-live="polite">
+            CREDIT <span id="credit">00</span>
+          </span>
+          <button id="sound-toggle" type="button" class="px-btn text-ng-mute hover:text-white !px-2.5 !py-2 !text-[8px]" aria-pressed="false" title="音效（預設靜音）">
+            <svg width="14" height="14" viewBox="0 0 14 14" shape-rendering="crispEdges" aria-hidden="true">
+              <path fill="currentColor" d="M1 5h3l4-3v10L4 9H1z" />
+              <g class="snd-on" fill="currentColor"><rect x="10" y="4" width="1" height="6"/><rect x="12" y="2" width="1" height="10"/></g>
+              <g class="snd-off" fill="currentColor"><rect x="10" y="5" width="1" height="1"/><rect x="11" y="6" width="1" height="1"/><rect x="12" y="7" width="1" height="1"/><rect x="12" y="5" width="1" height="1"/><rect x="10" y="7" width="1" height="1"/></g>
+            </svg>
+            <span id="sound-label">SOUND OFF</span>
+          </button>
+          <button id="crt-toggle" type="button" class="px-btn text-ng-mute hover:text-white !px-2.5 !py-2 !text-[8px]" aria-pressed="true" title="CRT 掃描線濾鏡">
+            <span id="crt-label">CRT ON</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <footer class="mt-24 border-t-2 border-ng-line">
+      <div class="mx-auto max-w-7xl px-4 py-10 grid gap-8 md:grid-cols-[1fr_auto]">
+        <div class="space-y-3 text-sm text-ng-mute max-w-2xl leading-relaxed">
+          <p class="font-pixel text-[10px] text-ng-yellow">GAME OVER? <span class="blink">CONTINUE</span></p>
+          <p>非官方愛好者典藏站。NEO GEO、SNK 及各遊戲名稱、角色與美術為其權利人所有。站內「示意畫面」為程式即時產生的原創抽象點陣圖；海報、卡帶與原聲等實物素材請在取得授權後放入 <code class="text-ng-text">public/media/games/&lt;slug&gt;/</code>。AES / Neo Geo CD 盒裝封面、遊戲畫面與標題畫面來源：<a href="https://thumbnails.libretro.com/" class="underline hover:text-ng-yellow" rel="noopener">libretro-thumbnails</a>。</p>
+        </div>
+        <div class="font-vt text-xl text-ng-mute leading-tight md:text-right">
+          <p>MVS · AES · CD · POCKET</p>
+          <p class="text-ng-blue-hi">1990 — 2004</p>
+        </div>
+      </div>
+      <div class="hazard h-1.5"></div>
+    </footer>
+
+    <script>
+      import { play, setSound, soundOn } from '../scripts/sfx';
+
+      const $ = (id: string) => document.getElementById(id);
+      const pad = (n: number) => String(n).padStart(2, '0');
+
+      function syncHeader() {
+        const on = soundOn();
+        const sb = $('sound-toggle');
+        if (sb) {
+          sb.setAttribute('aria-pressed', String(on));
+          sb.classList.toggle('!text-ng-yellow', on);
+          sb.querySelector<SVGGElement>('.snd-on')!.style.display = on ? '' : 'none';
+          sb.querySelector<SVGGElement>('.snd-off')!.style.display = on ? 'none' : '';
+        }
+        const sl = $('sound-label'); if (sl) sl.textContent = on ? 'SOUND ON' : 'SOUND OFF';
+        const crtOn = document.documentElement.dataset.crt === 'on';
+        const cb = $('crt-toggle');
+        if (cb) { cb.setAttribute('aria-pressed', String(crtOn)); cb.classList.toggle('!text-ng-yellow', crtOn); }
+        const cl = $('crt-label'); if (cl) cl.textContent = crtOn ? 'CRT ON' : 'CRT OFF';
+        const cr = $('credit'); if (cr) cr.textContent = pad(Number(localStorage.getItem('ngm:credit') || 0));
+        // 導覽列 active 狀態（header 跨頁保留，需要手動更新）
+        const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+        const p = location.pathname.replace(base, '') || '/';
+        document.querySelectorAll<HTMLAnchorElement>('[data-nav]').forEach((a) => {
+          const h = a.dataset.nav!;
+          const active = h === '/' ? p === '/' : p.startsWith(h) || (h === '/games/' && p.startsWith('/browse'));
+          if (active) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
+        });
+      }
+
+      // 只綁一次（header 使用 transition:persist）
+      if (!(window as any).__ngmBound) {
+        (window as any).__ngmBound = true;
+        document.addEventListener('click', (e) => {
+          const t = e.target as HTMLElement;
+          const sb = t.closest('#sound-toggle');
+          if (sb) {
+            const next = !soundOn();
+            setSound(next);
+            document.documentElement.dataset.sound = next ? 'on' : 'off';
+            if (next) {
+              const c = Math.min(99, Number(localStorage.getItem('ngm:credit') || 0) + 1);
+              localStorage.setItem('ngm:credit', String(c));
+              play('coin');
+            }
+            syncHeader();
+            return;
+          }
+          if (t.closest('#crt-toggle')) {
+            const d = document.documentElement;
+            d.dataset.crt = d.dataset.crt === 'on' ? 'off' : 'on';
+            localStorage.setItem('ngm:crt', d.dataset.crt);
+            play('select');
+            syncHeader();
+            return;
+          }
+          const s = t.closest<HTMLElement>('[data-sfx]');
+          if (s) play(s.dataset.sfx as any);
+        });
+      }
+      document.addEventListener('astro:page-load', syncHeader);
+    </script>
+  </body>
+</html>
